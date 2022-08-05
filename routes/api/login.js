@@ -1,18 +1,24 @@
 var express = require('express');
 var app = express();
 var router = express.Router();
-const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
 
+// 第三方套件
+// 獨立id
+const { v4: uuidv4 } = require('uuid');
+// 加密
+const bcrypt = require('bcrypt');
+// jwt套件
+var jwt = require('jsonwebtoken');
 // 取得post參數套件
 var bodyParser = require('body-parser')
-// parse application/x-www-form-urlencoded 
 app.use(bodyParser.urlencoded({ extended: false }))
-// parse application/json 
 app.use(bodyParser.json())
 
 // 自定義的db modules
 var { db } = require('../../modules/connectdb')
+
+// jwt key
+const jwtKey = '123456789'
 
 // 宣告使用者物件
 var user = {
@@ -23,7 +29,6 @@ var user = {
 }
 
 router.post('/', async function(req, res) {
-    // const result = await db.find('user')
     result = '1111'
     res.json(result)
     res.end()
@@ -44,12 +49,29 @@ router.post('/signin', async function(req, res) {
     const userData = await db.findOne('user' , condition)
     // 如果userData為空代表無此帳號 回傳false
     if ( !userData ) {
-        res.send(false)
+        res.send({
+            'login': false ,
+        })
     }else{
         const correctPassword = userData.password
         // request輸入的密碼跟正確的密碼比對
         const passwordCompareResult = await bcrypt.compare(password, correctPassword)
-        res.send(passwordCompareResult)
+
+        // 生成accessToken
+        const token = jwt.sign({
+            account: account,
+        }, jwtKey)
+
+        if (passwordCompareResult) {
+            res.send({
+                'login': true ,
+                'accessToken': token
+            })
+        }else{
+            res.send({
+                'login': false ,
+            })
+        }
     }   
     
     res.end()
