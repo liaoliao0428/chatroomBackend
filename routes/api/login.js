@@ -9,6 +9,8 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 // jwt套件
 var jwt = require('jsonwebtoken');
+// jwt key
+const jwtKey = '123456789'
 // 取得post參數套件
 var bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -16,17 +18,6 @@ app.use(bodyParser.json())
 
 // 自定義的db modules
 var { db } = require('../../modules/connectdb')
-
-// jwt key
-const jwtKey = '123456789'
-
-// 宣告使用者物件
-var user = {
-    '_id': null,
-    'userName': null,
-    'account': null,
-    'password': null
-}
 
 router.post('/', async function(req, res) {
     result = '1111'
@@ -77,17 +68,22 @@ router.post('/signin', async function(req, res) {
     res.end()
 });
 
+// 宣告使用者物件
+class user {
+    _id;
+    userName;
+    account;
+    password;
+    friendId = [];
+    roomId = [];
+}
+
 // 建立帳號
 router.post('/signup', async function(req, res) {
 
-    user._id = uuidv4()
-    user.userName = req.body.userName
-    user.account = req.body.account
-    user.password = bcrypt.hashSync(req.body.password, 10)
-
     // 查詢條件
     condition = {
-        account: user.account
+        'account': req.account
     }
 
     // 查詢帳號是否重複
@@ -96,7 +92,14 @@ router.post('/signup', async function(req, res) {
     if (findCountResult > 0) {
         res.send(false)
     }else{
-        const insertOneResult = await db.insertOne('user' , user)
+
+        const newUser = new user()
+        newUser._id = uuidv4()
+        newUser.userName = req.body.userName
+        newUser.account = req.body.account
+        newUser.password = bcrypt.hashSync(req.body.password, 10)
+
+        const insertOneResult = await db.insertOne('user' , newUser)
         res.send(insertOneResult.acknowledged)
     }
 
