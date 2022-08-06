@@ -22,18 +22,18 @@ const db = {
     },
 
     // 撈資料
-    find: async (collectionName , condition) => {
+    find: async (collectionName , condition = null , column = null) => {
         const collection = await connectDB(collectionName)
-        const findResult = await collection.find(condition).toArray()
+        const findResult = await collection.find(condition).project(column).toArray()
         await client.close()
 
         return findResult
     },
 
     // 撈一筆資料
-    findOne: async (collectionName , condition) => {
+    findOne: async (collectionName , condition , column = null) => {
         const collection = await connectDB(collectionName)
-        const findOneResult = await collection.findOne(condition)
+        const findOneResult = await collection.findOne(condition , {projection: column})
         await client.close()
 
         return findOneResult
@@ -46,6 +46,15 @@ const db = {
         await client.close()
 
         return findCountResult
+    },
+
+    // 更新
+    updateOne: async (collectionName , condition , update , options) => {
+        const collection = await connectDB(collectionName)
+        const updateOneResult = await collection.updateOne(condition , update , options)
+        await client.close()
+
+        return updateOneResult
     },
 }
 
