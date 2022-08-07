@@ -1,9 +1,8 @@
-var express = require('express');
-var router = express.Router();
+module.exports = (app) => {
+  app.use('/test', require('./test'))
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
+  app.use('/chatRoom/api/message', require('./message'))
+  app.use('/chatRoom/api/user', require('./user'))
+  app.use('/chatRoom/api/messageContainer', require('./messageContainer'))
 
-module.exports = router;
+}
