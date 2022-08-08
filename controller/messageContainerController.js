@@ -54,7 +54,31 @@ const messageContainerController = {
 
         res.send(findOneResult)
         res.end()
-    }
+    },
+
+    // 取得房間名稱
+    getRoomName: async (req , res) => {
+        const account = req.account
+        const roomId = req.body.roomId
+
+        const condition = {
+            account: account
+        }
+
+        const column = {
+            room: 1
+        }
+
+        const rooms = await db.findOne('messageContainer', condition , column)
+
+        const roomNameIndex = rooms.room.map((item) => {
+            return item.roomId;
+        }).indexOf(roomId);
+
+        res.send(rooms.room[roomNameIndex])
+        // res.send('1111232132')
+        res.end()
+    },
 }
 
 module.exports = messageContainerController

@@ -142,7 +142,7 @@ const userController = {
             const checkRoomIdCount = await db.findCount('user' , checkaddFreindCondition)
             if (checkRoomIdCount == 0) {
                 // 加入好友id
-                userController.addFriendId(account , userName , friendId , findResult[0])
+                await userController.addFriendId(account , userName , friendId , findResult[0])
 
                 res.send({
                     'addFriend': true
@@ -166,7 +166,6 @@ const userController = {
 
     // 加入好友id
     addFriendId: async (account , userName , friendId , findResult) => {
-        console.log(userName);
         // 用base64編碼建立房號id
         const userIdArray = [account , friendId]
         const roomIdObject = {
