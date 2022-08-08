@@ -1,30 +1,51 @@
-const express = require('express')
-
-//將 express 放進 http 中開啟 Server 的 3000 port ，正確開啟後會在 console 中印出訊息
-// const server = require('http').Server(app)
-//     .listen(3002,()=>{console.log('open server!')})
-
-//將啟動的 Server 送給 socket.io 處理
-// const io = require('socket.io')(server , {
-//     cors: true
-// })
-
-/*上方為此寫法的簡寫：
-  const socket = require('socket.io')
-  const io = socket(server)
-*/
-
+const { db } = require('./modules/connectdb')
 
 module.exports = (io) => {
 //監聽 Server 連線後的所有事件，並捕捉事件 socket 執行
-    io.on('connection', socket => {
+    io.on('connection', async socket => {
+
         //經過連線後在 console 中印出訊息
-        console.log('success connect!')
+        console.log(socket.handshake.query.account + '/' + socket.id + '/' + 'success connect!')
+
+        // 查詢當前帳號的房間id 並加入
+        const account = socket.handshake.query.account
+        // 查詢條件
+        condition = {
+            'account': account
+        }
+
+        // 欄位
+        column = {
+            'roomId': 1
+        }
+
+        // 連線成功加入房間
+        const roomIds = await db.findOne('user', condition , column)
+        roomIds.roomId.forEach((item) => {
+            socket.join(item)
+        })
+
+        // 監聽傳送訊息事件
+        socket.on('sendMessage' , messageData => {
+
+            const messageResponse = {
+                'from': messageData.account,
+                'message': messageData.message,
+            }
+
+            io.sockets.in(messageData.roomId).emit('sendMessageResponse', messageResponse)
+        })
+
         //監聽透過 connection 傳進來的事件
         socket.on('getMessage', message => {
-            console.log(socket.handshake.query.account);
             //回傳 message 給發送訊息的 Client
             socket.emit('getMessage', message)
+        })
+
+        //送出中斷申請時先觸發此事件
+        socket.on('disConnection', message => {
+            //再送訊息讓 Client 做 .close()
+            socket.emit('disConnection', '')
         })
     })
 }
