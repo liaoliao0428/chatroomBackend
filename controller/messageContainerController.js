@@ -1,6 +1,9 @@
 // 自定義的db modules
 var { db } = require('../modules/connectdb')
 
+// contorller
+const messageController = require('./messageController')
+
 // 宣告訊息容器
 class room {
     roomId;
@@ -57,16 +60,20 @@ const messageContainerController = {
     },
 
     // 取得房間名稱
-    getRoomName: async (req , res) => {
+    getRoomNameMessage: async (req , res) => {
         const account = req.account
         const roomId = req.body.roomId
 
+        // 取得房間名稱條件
         const condition = {
             account: account
         }
 
         const column = {
-            room: 1
+            room:{
+                roomId: 1,
+                roomName: 1
+            }
         }
 
         const rooms = await db.findOne('messageContainer', condition , column)
@@ -74,9 +81,16 @@ const messageContainerController = {
         const roomNameIndex = rooms.room.map((item) => {
             return item.roomId;
         }).indexOf(roomId);
+        // 取得房間名稱
 
-        res.send(rooms.room[roomNameIndex])
-        // res.send('1111232132')
+        const messageHistory = await messageController.getMessageHistory(req.body.roomId)
+
+        const roomData = {
+            roomName: rooms.room[roomNameIndex].roomName,
+            messageHistory: messageHistory.message
+        }
+
+        res.send(roomData)
         res.end()
     },
 }

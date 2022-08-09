@@ -1,4 +1,6 @@
 const { db } = require('./modules/connectdb')
+const format = require('date-format');
+const messageController = require('./controller/messageController')
 
 module.exports = (io) => {
 //監聽 Server 連線後的所有事件，並捕捉事件 socket 執行
@@ -27,11 +29,15 @@ module.exports = (io) => {
 
         // 監聽傳送訊息事件
         socket.on('sendMessage' , messageData => {
-
+            const time = format.asString('yyyy-MM-dd hh:mm' , new Date())
             const messageResponse = {
                 'from': messageData.account,
                 'message': messageData.message,
+                'time': time
             }
+
+            // 訊息儲存至message表
+            messageController.insertMessage(messageData.roomId , messageData.account , messageData.message , time)
 
             io.sockets.in(messageData.roomId).emit('sendMessageResponse', messageResponse)
         })
@@ -41,6 +47,11 @@ module.exports = (io) => {
             //回傳 message 給發送訊息的 Client
             socket.emit('getMessage', message)
         })
+
+        // 取得聊天室訊息紀錄事件
+        socket.on('getMessageHistory' , roomId => {
+            console.log(roomId);
+        })        
 
         //送出中斷申請時先觸發此事件
         socket.on('disConnection', message => {
