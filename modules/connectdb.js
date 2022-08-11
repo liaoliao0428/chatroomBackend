@@ -16,6 +16,7 @@ const db = {
     insertOne: async (collectionName , object) => {
         const collection = await connectDB(collectionName)
         const insertOneResult = await collection.insertOne(object)
+
         await client.close()
 
         return insertOneResult
@@ -25,6 +26,7 @@ const db = {
     find: async (collectionName , condition = null , column = null) => {
         const collection = await connectDB(collectionName)
         const findResult = await collection.find(condition).project(column).toArray()
+
         await client.close()
 
         return findResult
@@ -34,6 +36,7 @@ const db = {
     findOne: async (collectionName , condition , column = null) => {
         const collection = await connectDB(collectionName)
         const findOneResult = await collection.findOne(condition , {projection: column})
+
         await client.close()
 
         return findOneResult
@@ -43,6 +46,7 @@ const db = {
     findCount: async (collectionName , condition) => {
         const collection = await connectDB(collectionName)
         const findCountResult = await collection.countDocuments(condition)
+
         await client.close()
 
         return findCountResult
@@ -52,6 +56,7 @@ const db = {
     updateOne: async (collectionName , condition , update , options) => {
         const collection = await connectDB(collectionName)
         const updateOneResult = await collection.updateOne(condition , update , options)
+
         await client.close()
 
         return updateOneResult
