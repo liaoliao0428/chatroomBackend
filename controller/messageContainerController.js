@@ -86,6 +86,7 @@ const messageContainerController = {
         const messageHistory = await messageController.getMessageHistory(req.body.roomId)
 
         const roomData = {
+            account: account,
             roomName: rooms.room[roomNameIndex].roomName,
             messageHistory: messageHistory.message
         }

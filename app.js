@@ -42,7 +42,7 @@ const io = require('socket.io')(server , {
   cors: true
 })
 
-require('./server')(io)
+require('./socketServer')(io)
 
 server.listen(3002, () => 
   console.log(`Example app listening on port 3002!`)
