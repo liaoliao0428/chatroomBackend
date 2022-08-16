@@ -39,6 +39,11 @@ module.exports = (io) => {
             socket.join(item)
         })
 
+        // 關閉資料庫連線
+        setTimeout(() => {
+            db.close()
+        } , 100)
+
         // 監聽傳送訊息事件
         socket.on('sendMessage' , messageData => {
             const newMessage = new message()
@@ -73,6 +78,10 @@ module.exports = (io) => {
             // 資料庫資料改成已讀
             messageController.updateMessageStatus(readCheckData)
 
+            setTimeout(() => {
+                db.close()
+            } , 100)
+
             socket.to(readCheckData.roomId).emit('readCheckYes' , readCheckData)
         })
 
@@ -80,12 +89,7 @@ module.exports = (io) => {
         socket.on('getMessage', message => {
             //回傳 message 給發送訊息的 Client
             socket.emit('getMessage' , message)
-        })
-
-        // 取得聊天室訊息紀錄事件
-        socket.on('getMessageHistory' , roomId => {
-            console.log(roomId);
-        })        
+        })     
 
         //送出中斷申請時先觸發此事件
         socket.on('disConnection' , message => {
@@ -94,26 +98,46 @@ module.exports = (io) => {
         })
 
         // 剛點進來的已讀確認
-        socket.on('initReadCheck' , initReadCheckData => {
-            // 把所有未讀的訊息改為以讀
-            socket.to(initReadCheckData.roomId).emit('initReadCheck' , initReadCheckData.roomId)
-        })
+        socket.on('initReadCheck' , async initReadCheckData => {
+            // 撈未讀狀態的訊息
+            const unwind = {
+                "$unwind":"$message"
+            }
 
-        // 把所有的訊息都標示已讀
-        socket.on('updateAllReadCheck' , updateAllReadCheckData => {
-            updateAllReadCheckData.unReadIds.forEach((item) => {
-                console.log(item);
+            const condition = {
+                "message.from":{$ne: initReadCheckData.account},
+                "message.status":false,
+                "roomId": initReadCheckData.roomId
+            }
 
-                const readCheckData = {
-                    roomId: updateAllReadCheckData.roomId,
-                    checkId: item.id
+            const column = {
+                message: {
+                    id: 1
+                }
+            }
+    
+            const unReadIds = await db.aggregate('message' , unwind , condition , column)
+
+            // 將沒有已讀的訊息狀態改為已讀
+            unReadIds.forEach(async (unReadId) => {
+                console.log(unReadId.message.id);
+                readCheckData = {
+                    roomId: initReadCheckData.roomId,
+                    checkId: unReadId.message.id
                 }
 
-                // 資料庫資料改成已讀
-                setTimeout(() => {
-                    messageController.updateMessageStatus(readCheckData)
-                } , 300)
+                await messageController.updateMessageStatus(readCheckData)
             })
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+
+            initReadCheckData.unReadIds = unReadIds
+
+            // 把所有未讀的訊息改為以讀
+            socket.to(initReadCheckData.roomId).emit('initReadCheck' , initReadCheckData)
         })
     })
 }

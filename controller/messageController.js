@@ -14,75 +14,128 @@ class messageContainer {
 const messageController = {
     // 訊息表寫入roomId
     addRoomIdToMessage: async ( roomId ) => {
-        const newMessageContainer = new messageContainer()
-        newMessageContainer.roomId = roomId
-        await db.insertOne('message' , newMessageContainer)
-    },
 
-    // getMessageContainer: async (req , res) => {
-    //     const account = req.account
-    // },
+        try {
+            
+            const newMessageContainer = new messageContainer()
+            newMessageContainer.roomId = roomId
+            await db.insertOne('message' , newMessageContainer)
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+
+        } catch (error) {
+            console.log('addRoomIdToMessage' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+        }
+    },
 
     // 撈訊息紀錄
     getMessageHistory: async ( roomId ) => {
-        // 取得房間名稱條件
-        const condition = {
-            roomId: roomId
-        }
 
-        // 欄位
-        const column = {
-            message: 1
-        }
-
-        const messageHistory = await db.findOne('message' , condition , column)
+        try {
         
-        return messageHistory
+            // 取得房間名稱條件
+            const condition = {
+                roomId: roomId
+            }
+
+            // 欄位
+            const column = {
+                message: 1
+            }
+
+            const messageHistory = await db.findOne('message' , condition , column)
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+            
+            return messageHistory
+
+        } catch (error) {
+            console.log('getMessageHistory' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+        }
     },
 
     // 訊息寫入訊息容器
     insertMessage: async (roomId , newMessage) => {
 
-        // update or insert
-        const options = {
-            'upsert': true ,
-        }        
+        try {
+            // update or insert
+            const options = {
+                'upsert': true ,
+            }        
 
-        await db.updateOne('message' , {
-            roomId: roomId 
-        } , {
-            $addToSet:{
-                message: newMessage
-            }
-        } , options )
+            // 更新訊息集合
+            await db.updateOne('message' , {
+                roomId: roomId 
+            } , {
+                $addToSet:{
+                    message: newMessage
+                }
+            } , options )
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+
+        }catch (error) {
+            console.log('insertMessage' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+        }
     },
 
     // 將訊息已讀狀態更新至已讀
     updateMessageStatus: async ( readCheckData ) => {
 
-        // update or insert
-        const options = {
-            'upsert': false ,
-        }
+        try {
 
-        await db.updateOne('message' , {
-            'roomId': readCheckData.roomId,
-            'message.id': readCheckData.checkId
-        } , {
-            $set:{
-                'message.$.status': true
+            // update or insert
+            const options = {
+                'upsert': false ,
             }
-        } , options)
-    },
 
-    // 把所有未讀的訊息改為以讀
-    // updateAllMessageStatus: async ( initReadCheckData ) => {
-        
-    //     // update or insert 
-    //     const options = {
-    //         'upsert': false ,
-    //     }
-    // }
+            await db.updateOne('message' , {
+                'roomId': readCheckData.roomId,
+                'message.id': readCheckData.checkId
+            } , {
+                $set:{
+                    'message.$.status': true
+                }
+            } , options)
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+
+        } catch (error) {
+            console.log('updateMessageStatus' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100) 
+        }
+    },
 }
 
 module.exports = messageController
