@@ -16,25 +16,22 @@ const db = {
     insertOne: async (collectionName , object) => {
         const collection = await connectDB(collectionName)
         const insertOneResult = await collection.insertOne(object)
-        await client.close()
 
         return insertOneResult
     },
 
     // 撈資料
-    find: async (collectionName , condition) => {
+    find: async (collectionName , condition = null , column = null) => {
         const collection = await connectDB(collectionName)
-        const findResult = await collection.find(condition).toArray()
-        await client.close()
+        const findResult = await collection.find(condition).project(column).toArray()
 
         return findResult
     },
 
     // 撈一筆資料
-    findOne: async (collectionName , condition) => {
+    findOne: async (collectionName , condition , column = null) => {
         const collection = await connectDB(collectionName)
-        const findOneResult = await collection.findOne(condition)
-        await client.close()
+        const findOneResult = await collection.findOne(condition , {projection: column})
 
         return findOneResult
     },
@@ -43,9 +40,29 @@ const db = {
     findCount: async (collectionName , condition) => {
         const collection = await connectDB(collectionName)
         const findCountResult = await collection.countDocuments(condition)
-        await client.close()
 
         return findCountResult
+    },
+
+    // 更新
+    updateOne: async (collectionName , condition , update , options) => {
+        const collection = await connectDB(collectionName)
+        const updateOneResult = await collection.updateOne(condition , update , options)
+
+        return updateOneResult
+    },
+
+    // 搜尋一個集合
+    aggregate: async (collectionName , unwind ,  condition , column) => {
+        const collection = await connectDB(collectionName)
+        const aggregateResult = await collection.aggregate([unwind , {"$match":condition} , {"$project":column}]).toArray()
+
+        return aggregateResult
+    },
+
+    // 資料庫關閉
+    close: () => {
+        client.close()
     },
 }
 
