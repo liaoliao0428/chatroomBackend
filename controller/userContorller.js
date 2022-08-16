@@ -4,7 +4,6 @@ var { db } = require('../modules/connectdb')
 const messageController = require('./messageController')
 const messageContainerController = require('./messageContainerController')
 
-
 // 第三方套件
 // 獨立id
 const { v4: uuidv4 } = require('uuid');
@@ -29,181 +28,253 @@ class user {
 const userController = {
     // 登入
     signin: async (req , res) => {
-        account = req.body.account
-        password = req.body.password
+        try {    
+                   
+            account = req.body.account
+            password = req.body.password
 
-        // 查詢條件
-        condition = {
-            'account': account
-        }
+            // 查詢條件
+            condition = {
+                'account': account
+            }
 
-        // 判斷密碼是否正確
-        const userData = await db.findOne('user' , condition)
-        // 如果userData為空代表無此帳號 回傳false
-        if ( !userData ) {
-            res.send({
-                'login': false ,
-            })
-        }else{
-            const correctPassword = userData.password
-            // request輸入的密碼跟正確的密碼比對
-            const passwordCompareResult = await bcrypt.compare(password, correctPassword)
-
-            // 生成accessToken
-            const token = jwt.sign({
-                account: account,
-            }, jwtKey)
-
-            if (passwordCompareResult) {
-                res.send({
-                    'login': true ,
-                    'accessToken': token
-                })
-            }else{
+            // 判斷密碼是否正確
+            const userData = await db.findOne('user' , condition)
+            // 如果userData為空代表無此帳號 回傳false
+            if ( !userData ) {
                 res.send({
                     'login': false ,
                 })
-            }
-        }   
-        
-        res.end()
+            }else{
+                // request輸入的密碼跟正確的密碼比對
+                const correctPassword = userData.password
+                const passwordCompareResult = await bcrypt.compare(password, correctPassword)
+
+                if (passwordCompareResult) {
+                    // 生成accessToken
+                    const token = jwt.sign({
+                        account: account,
+                    }, jwtKey)
+
+                    res.send({
+                        'login': true ,
+                        'accessToken': token
+                    })
+                }else{
+                    res.send({
+                        'login': false ,
+                    })
+                }
+            }  
+            
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)      
+
+        } catch (err) {
+            console.log('錯誤' , err);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+        }
     },
 
     // 建立帳號
     signup: async (req , res) => {
-        // 查詢條件
-        condition = {
-            'account': req.account
+        try {
+        
+            // 查詢條件
+            condition = {
+                'account': req.account
+            }
+
+            // 查詢帳號是否重複
+            const findCountResult = await db.findCount('user' , condition)
+            // 大於0代表重複
+            if (findCountResult > 0) {
+                res.send(false)
+            }else{
+
+                const newUser = new user()
+                newUser._id = uuidv4()
+                newUser.userName = req.body.userName
+                newUser.account = req.body.account
+                newUser.password = bcrypt.hashSync(req.body.password, 10)
+
+                const insertOneResult = await db.insertOne('user' , newUser)
+                res.send(insertOneResult.acknowledged)
+            }
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+
+        } catch (error) {
+            console.log('signup' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
         }
-
-        // 查詢帳號是否重複
-        const findCountResult = await db.findCount('user' , condition)
-        // 大於0代表重複
-        if (findCountResult > 0) {
-            res.send(false)
-        }else{
-
-            const newUser = new user()
-            newUser._id = uuidv4()
-            newUser.userName = req.body.userName
-            newUser.account = req.body.account
-            newUser.password = bcrypt.hashSync(req.body.password, 10)
-
-            const insertOneResult = await db.insertOne('user' , newUser)
-            res.send(insertOneResult.acknowledged)
-        }
-            
-            res.end()
     },
 
     // 取得使用者資料
     getUserData: async (req , res) => {
-        // 查詢條件
-        condition = {
-            'account': req.account
-        }
+        try {
 
-        // 查詢欄位
-        column = {
-            'userName': 1,
-            'account': 1,
-            'roomId': 1
-        }
+            // 查詢條件
+            condition = {
+                'account': req.account
+            }
 
-        // 查詢使用者資訊
-        const findOneResult = await db.findOne('user' , condition , column)
-        
-        res.send(findOneResult)
-        res.end()
+            // 查詢欄位
+            column = {
+                'userName': 1,
+                'account': 1,
+                'roomId': 1
+            }
+
+            // 查詢使用者資訊
+            const findOneResult = await db.findOne('user' , condition , column)
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+            
+            res.send(findOneResult)
+
+        } catch (error) {
+            console.log('getUserData' , error);   
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+        }
     },
 
     // 加入好友
     addFriend: async (req , res) => {
 
-        const account = req.account
-        const userName = req.body.userName
-        const friendId = req.body.friendId
+        try {
+            
+            const account = req.account
+            const userName = req.body.userName
+            const friendId = req.body.friendId
 
-        // 查詢條件
-        condition = {
-            'account': friendId
-        }
-
-        // 查詢輸入的好友id是否正確
-        const findResult = await db.find('user' , condition)
-        if (findResult.length == 1 && account !== friendId) {
-            // 先看是否已加入好友
-            // 是否已加入好友檢查條件
-            const checkaddFreindCondition = {
-                'account': account ,
-                'friendId': {$elemMatch:{$in:[friendId]}}
+            // 查詢條件
+            condition = {
+                'account': friendId
             }
 
-            const checkRoomIdCount = await db.findCount('user' , checkaddFreindCondition)
-            if (checkRoomIdCount == 0) {
-                // 加入好友id
-                await userController.addFriendId(account , userName , friendId , findResult[0])
+            // 查詢輸入的好友id是否正確
+            const findResult = await db.find('user' , condition)
+            if (findResult.length == 1 && account !== friendId) {
+                // 先看是否已加入好友
+                // 是否已加入好友檢查條件
+                const checkaddFreindCondition = {
+                    'account': account ,
+                    'friendId': {$elemMatch:{$in:[friendId]}}
+                }
 
-                res.send({
-                    'addFriend': true
-                })
+                const checkRoomIdCount = await db.findCount('user' , checkaddFreindCondition)
+                if (checkRoomIdCount == 0) {
+                    // 加入好友id
+                    await userController.addFriendId(account , userName , friendId , findResult[0])
 
+                    res.send({
+                        'addFriend': true
+                    })
+
+                }else{
+                    res.send({
+                        'addFriend': false,
+                        'addFriendResponse': '已加入好友'
+                    })
+                }
             }else{
                 res.send({
                     'addFriend': false,
-                    'addFriendResponse': '已加入好友'
+                    'addFriendResponse': '好友id輸入錯誤'
                 })
             }
-        }else{
-            res.send({
-                'addFriend': false,
-                'addFriendResponse': '好友id輸入錯誤'
-            })
-        }
 
-        res.end()
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+
+        } catch (error) {
+            console.log('addFriend' , error); 
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+        }
     },
 
     // 加入好友id
     addFriendId: async (account , userName , friendId , findResult) => {
-        // 用base64編碼建立房號id
-        const userIdArray = [account , friendId]
-        const roomIdObject = {
-            userIdArray
+
+        try {
+            // 用base64編碼建立房號id
+            const userIdArray = [account , friendId]
+            const roomIdObject = {
+                userIdArray
+            }
+            const roomId = Base64.encode(JSON.stringify(roomIdObject) , true)        
+
+            // update or insert
+            const options = {
+                'upsert': true ,
+            }        
+
+            // 自己的帳號friendId寫入朋友id , roomId寫入共同roomId
+            await db.updateOne('user' , {
+                'account': account 
+            } , {
+                $addToSet:{
+                    friendId: friendId,
+                    roomId: roomId
+                }
+            } , options )
+
+            // 朋友的帳號friendId寫入自己id , roomId寫入共同roomId
+            await db.updateOne('user' , {
+                'account': friendId 
+            } , {
+                $addToSet:{
+                    friendId: account,
+                    roomId: roomId
+                }
+            } , options )
+
+            // 訊息表寫入roomId以及訊息容器
+            await messageController.addRoomIdToMessage(roomId)
+
+            // 訊息容器內寫入
+            await messageContainerController.addMessageContainer(account , roomId , findResult.userName)
+            await messageContainerController.addMessageContainer(friendId , roomId , userName)
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
+        } catch (error) {
+            console.log('addFriendId' , error);
+
+            // 關閉資料庫連線
+            setTimeout(() => {
+                db.close()
+            } , 100)
         }
-        const roomId = Base64.encode(JSON.stringify(roomIdObject) , true)        
-
-        // update or insert
-        const options = {
-            'upsert': true ,
-        }        
-
-        // 自己的帳號friendId寫入朋友id , roomId寫入共同roomId
-        await db.updateOne('user' , {
-            'account': account 
-        } , {
-            $addToSet:{
-                friendId: friendId,
-                roomId: roomId
-            }
-        } , options )
-
-        // 朋友的帳號friendId寫入自己id , roomId寫入共同roomId
-        await db.updateOne('user' , {
-            'account': friendId 
-        } , {
-            $addToSet:{
-                friendId: account,
-                roomId: roomId
-            }
-        } , options )
-
-        // 訊息表寫入roomId以及訊息容器
-        await messageController.addRoomIdToMessage(roomId)
-
-        // 訊息容器內寫入
-        await messageContainerController.addMessageContainer(account , roomId , findResult.userName)
-        await messageContainerController.addMessageContainer(friendId , roomId , userName)
     }
 }
 
